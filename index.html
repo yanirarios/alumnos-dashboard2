@@ -1,476 +1,167 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>EduManager — Gestión de Alumnos (con sync)</title>
-<style>
-  :root{ --bg:#fff0f6; --accent:#d96b8a; --accent-dark:#c45878; --muted:#ffdce6; --card:#fff; --chip:#ffb6d9; --text:#5a2b39; --soft:#fff7fb; }
-  *{box-sizing:border-box}
-  body{ margin:0; font-family:Arial, Helvetica, sans-serif; background:linear-gradient(180deg,var(--bg),#fff6f9 60%); color:var(--text); min-height:100vh; display:flex; }
-  .sidebar{ width:220px; background:var(--accent); color:#fff; padding:24px; display:flex; flex-direction:column; gap:14px; min-height:100vh }
-  .brand{ font-weight:700; font-size:20px; text-align:center }
-  .nav a{ display:flex; gap:10px; align-items:center; padding:10px 12px; border-radius:10px; text-decoration:none; color:inherit }
-  .nav a:hover{ background:rgba(255,255,255,0.08) }
-  .main{ flex:1; padding:26px }
-  h1{ margin:0 0 12px 0; color:var(--accent-dark) }
-  .toolbar{ display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap }
-  .search{ flex:1; display:flex }
-  .search input{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid #ffd1e6; background:var(--soft) }
-  .btn{ background:var(--accent); color:white; padding:10px 14px; border-radius:10px; border:none; cursor:pointer; font-weight:600 }
-  .btn.ghost{ background:transparent; color:var(--accent-dark); border:1px solid #ffd1e6 }
-  .card{ background:var(--card); padding:16px; border-radius:12px; box-shadow:0 6px 18px rgba(90,43,57,0.06) }
-  table{ width:100%; border-collapse:collapse; margin-top:12px; border-radius:10px; overflow:hidden }
-  thead th{ background:var(--muted); text-align:left; padding:12px; font-weight:700 }
-  tbody td{ background:var(--soft); padding:12px; border-bottom:1px solid #ffd3e0; vertical-align:middle }
-  .chip{ display:inline-block; background:var(--chip); color:var(--text); padding:6px 10px; border-radius:999px; margin:4px 6px 4px 0; font-size:13px }
-  .chip .x{ margin-left:8px; font-weight:700; cursor:pointer; opacity:.7 }
-  .muted{ color:#9b6a77; font-size:13px }
-  /* modal */
-  .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:1000 }
-  .modal{ width:920px; max-width:96%; background:white; border-radius:12px; padding:18px }
-  .field{ display:flex; flex-direction:column; margin-bottom:10px }
-  .tags-input{ display:flex; gap:6px; flex-wrap:wrap; padding:8px; background:#fff7fb; border:1px solid #ffd1e6; border-radius:8px; min-height:44px; align-items:center }
-  .tags-input input{ border:none; outline:none; padding:6px; min-width:120px }
-  .suggestions{ position:relative }
-  .suggest-box{ position:absolute; top:42px; left:0; right:0; background:white; border:1px solid #ffd1e6; border-radius:8px; max-height:150px; overflow:auto; z-index:10 }
-  .suggest-item{ padding:8px; cursor:pointer }
-  .suggest-item:hover{ background:#fff0f6 }
-  .actions button{ margin-right:8px }
-  @media (max-width:880px){ .sidebar{ display:none } .toolbar{ flex-direction:column; align-items:stretch } .modal{ width:95% } }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Alumnos</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    button { margin: 5px; padding: 10px; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+    td, th { border: 1px solid #ccc; padding: 8px; }
+    th { background: #eee; }
+  </style>
 </head>
 <body>
 
-  <div class="sidebar">
-    <div class="brand">EduManager</div>
-    <nav class="nav">
-      <a class="active" href="#">🏠 Dashboard</a>
-      <a href="#">👥 Alumnos</a>
-      <a href="#">📘 Materias</a>
-      <a href="#">⚙️ Ajustes</a>
-    </nav>
-    <div style="margin-top:auto;font-size:13px;opacity:.9">
-      <div class="muted">Usuario</div><div style="font-weight:600">Tu cuenta</div>
-    </div>
-  </div>
+<h1>Dashboard Alumnos (Firebase + Local)</h1>
 
-  <main class="main">
-    <h1>Gestión de Alumnos</h1>
+<button id="syncDown">Sincronizar ↓ (desde Firebase)</button>
+<button id="syncUp">Sincronizar ↑ (a Firebase)</button>
 
-    <div class="toolbar">
-      <div class="search"><input id="searchInput" placeholder="Buscar por nombre, materia o celular..." /></div>
-      <button class="btn ghost" id="importBtn">Importar JSON</button>
-      <button class="btn ghost" id="exportBtn">Exportar JSON</button>
-      <button class="btn ghost" id="pullBtn" title="Bajar desde servidor (si está configurado)">Sincronizar ↓</button>
-      <button class="btn ghost" id="pushBtn" title="Subir al servidor (si está configurado)">Sincronizar ↑</button>
-      <button class="btn" id="openAddBtn">Agregar Alumno</button>
-    </div>
+<h2>Agregar Alumno</h2>
+<input id="nombre" placeholder="Nombre" />
+<input id="curso" placeholder="Curso" />
+<button id="add">Agregar</button>
 
-    <div class="card">
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
-        <div style="font-weight:700">Lista de alumnos</div>
-        <div class="muted">Cantidad: <span id="count">0</span></div>
-      </div>
+<h2>Listado</h2>
+<table id="tabla">
+  <thead>
+    <tr>
+      <th>Nombre</th>
+      <th>Curso</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-      <table id="studentsTable" class="table-sm" aria-label="Lista de alumnos">
-        <thead>
-          <tr>
-            <th>Nombre</th><th>Materias</th><th>Número</th><th>Horario</th><th style="width:140px">Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-    </div>
-  </main>
-
-  <div id="modalRoot" style="display:none"></div>
+<!-- FIREBASE SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js"></script>
 
 <script>
-/* -------------------- CONFIGuración SERVIDOR --------------------
-  OPCIÓN FIREBASE: pega tu firebaseConfig aquí (objeto).
-  Si dejas 'firebaseConfig = null' la app usará localStorage solamente.
-  Para usar Supabase o tu propio backend, implemento instrucciones abajo.
-*/
-const firebaseConfig = null;
-/* Ejemplo (reemplaza con tu config real para activar):
+/* ---------------------------------------------------------
+   CONFIGURACIÓN FIREBASE (CAMBIAR ESTO)
+--------------------------------------------------------- */
+
 const firebaseConfig = {
-  apiKey: "xxx",
-  authDomain: "xxx.firebaseapp.com",
-  projectId: "xxx",
-  storageBucket: "xxx.appspot.com",
-  messagingSenderId: "xxx",
-  appId: "xxx"
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH_DOMAIN",
+  projectId: "TU_PROJECT_ID",
+  storageBucket: "TU_STORAGE_BUCKET",
+  messagingSenderId: "TU_SENDER_ID",
+  appId: "TU_APP_ID"
 };
-*/
-/* ------------------------------------------------------------- */
 
-const REFERENCE_VIDEO = "/mnt/data/EduManager - Gestión de Alumnos - Google Chrome 2025-11-24 11-11-14.mp4";
+// Inicializar Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db  = firebase.firestore();
 
-/* ---------- dependencias (si firebase está activado se cargarán) ---------- */
-let firebaseApp = null, firestore = null;
 
-/* ---------- Storage & helpers ---------- */
-const LS_KEY = "edu_alumnos_v2";
+/* ---------------------------------------------------------
+   LOCAL DATA (fallback cuando no hay firebaseConfig)
+--------------------------------------------------------- */
+let datos = JSON.parse(localStorage.getItem("alumnos")) || [];
 
-function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8) }
-
-function loadStudents(){
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    if(!raw) return [];
-    return JSON.parse(raw);
-  }catch(e){ console.error(e); return [];}
-}
-function saveStudents(arr){
-  localStorage.setItem(LS_KEY, JSON.stringify(arr));
+function guardarLocal() {
+  localStorage.setItem("alumnos", JSON.stringify(datos));
 }
 
-function phoneValid(v){
-  if(!v) return false;
-  const digits = v.replace(/\D/g,"");
-  return digits.length>=7 && digits.length<=15;
-}
 
-/* ---------- state ---------- */
-let students = loadStudents();
-let editingId = null;
-
-/* ---------- render ---------- */
-const tbody = document.querySelector("#studentsTable tbody");
-const countSpan = document.getElementById("count");
-
-function render(){
+/* ---------------------------------------------------------
+   DIBUJAR TABLA
+--------------------------------------------------------- */
+function dibujar() {
+  const tbody = document.querySelector("#tabla tbody");
   tbody.innerHTML = "";
-  const q = document.getElementById("searchInput").value.trim().toLowerCase();
-  const list = students.filter(s=>{
-    if(!q) return true;
-    const text = (s.name + " " + s.materias.join(" ") + " " + s.celular).toLowerCase();
-    return text.includes(q);
-  });
 
-  countSpan.textContent = list.length;
-
-  if(list.length===0){
+  datos.forEach((alumno, index) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = "<td colspan='5' style='text-align:center;padding:20px;color:#b07fa0'>No hay alumnos</td>";
+
+    tr.innerHTML = `
+      <td>${alumno.nombre}</td>
+      <td>${alumno.curso}</td>
+      <td>
+        <button onclick="eliminar(${index})">Borrar</button>
+      </td>
+    `;
+
     tbody.appendChild(tr);
+  });
+}
+
+window.eliminar = (i) => {
+  datos.splice(i, 1);
+  guardarLocal();
+  dibujar();
+};
+
+
+/* ---------------------------------------------------------
+   AGREGAR ALUMNO LOCAL
+--------------------------------------------------------- */
+document.getElementById("add").onclick = () => {
+  const nombre = document.getElementById("nombre").value;
+  const curso  = document.getElementById("curso").value;
+
+  if (!nombre || !curso) {
+    alert("Falta completar datos");
     return;
   }
 
-  list.forEach(s=>{
-    const tr = document.createElement("tr");
-    const materiasHTML = s.materias.map(m=>`<span class="chip">${escapeHtml(m)}<span class="x" data-action="delChip" data-id="${s.id}" data-m="${escapeHtml(m)}">×</span></span>`).join("");
-    tr.innerHTML = `
-      <td>${escapeHtml(s.name)}</td>
-      <td>${materiasHTML}</td>
-      <td>${escapeHtml(s.celular)}</td>
-      <td>${escapeHtml(s.horario)}</td>
-      <td class="actions">
-        <button class="btn ghost" data-action="edit" data-id="${s.id}">Editar</button>
-        <button class="btn" data-action="del" data-id="${s.id}">Eliminar</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+  datos.push({ nombre, curso });
+  guardarLocal();
+  dibujar();
 
-function escapeHtml(text){
-  if(text==null) return "";
-  return String(text).replace(/[&<>"]/g, function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]); });
-}
+  document.getElementById("nombre").value = "";
+  document.getElementById("curso").value  = "";
+};
 
-/* ---------- Modal, tags + autocomplete ---------- */
-const modalRoot = document.getElementById("modalRoot");
 
-function getAllKnownSubjects(){
-  const set = new Set();
-  students.forEach(s => (s.materias||[]).forEach(m => set.add(m)));
-  return Array.from(set).sort();
-}
+/* ---------------------------------------------------------
+   SINCRONIZAR ↓ (descargar de Firebase)
+--------------------------------------------------------- */
+document.getElementById("syncDown").onclick = async () => {
+  const snap = await db.collection("Alumnos").get();
+  
+  datos = snap.docs.map(doc => doc.data());
+  guardarLocal();
+  dibujar();
 
-function openModal(student=null){
-  editingId = student ? student.id : null;
-  modalRoot.style.display = "block";
-  modalRoot.innerHTML = `
-    <div class="modal-backdrop" id="backdrop">
-      <div class="modal card" role="dialog" aria-modal="true">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <h3>${student ? "Editar alumno": "Agregar alumno"}</h3>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button id="openVideoBtn" class="btn ghost" title="Ver referencia del video">Ver video</button>
-            <button id="closeModal" class="btn ghost">Cerrar</button>
-          </div>
-        </div>
+  alert("Datos descargados desde Firebase ✔");
+};
 
-        <form id="modalForm" style="margin-top:10px">
-          <div style="display:flex;gap:12px;flex-wrap:wrap">
-            <div style="flex:1;min-width:220px" class="field">
-              <label>Nombre</label>
-              <input id="f_name" required placeholder="Nombre del alumno" />
-            </div>
-            <div style="flex:1;min-width:220px" class="field">
-              <label>Número de celular</label>
-              <input id="f_cel" placeholder="+54 9 11 1234 5678" />
-            </div>
-            <div style="flex:1;min-width:220px" class="field">
-              <label>Horario de clases</label>
-              <input id="f_hor" placeholder="Ej: Lunes 10:00 AM" />
-            </div>
-            <div style="flex:1;min-width:220px" class="field">
-              <label>Materias (añade y presiona Enter)</label>
-              <div class="tags-input" id="tagsInput" tabindex="0">
-                <input id="tagText" placeholder="Escribe y presiona Enter" />
-              </div>
-              <div class="suggestions" id="suggestionsWrap" style="position:relative"></div>
-            </div>
-          </div>
 
-          <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
-            <button class="btn" type="submit">${student ? "Guardar" : "Agregar"}</button>
-            <button id="cancelBtn" class="btn ghost" type="button">Cancelar</button>
-            <div class="muted right">Los datos se guardan localmente; sincroniza si usas servidor</div>
-          </div>
-        </form>
-      </div>
-    </div>
-  `;
+/* ---------------------------------------------------------
+   SINCRONIZAR ↑ (subir a Firebase)
+--------------------------------------------------------- */
+document.getElementById("syncUp").onclick = async () => {
+  // Borrar colección antes de subir
+  const snap = await db.collection("Alumnos").get();
+  const batch = db.batch();
 
-  // helpers dentro del modal
-  const tagsInput = document.getElementById("tagsInput");
-  const tagText = document.getElementById("tagText");
-  const suggestionsWrap = document.getElementById("suggestionsWrap");
+  snap.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
 
-  let localTags = student ? [...(student.materias||[])] : [];
-  function refreshTags(){
-    tagsInput.querySelectorAll(".chip").forEach(n=>n.remove());
-    localTags.forEach(t=>{
-      const span = document.createElement("span");
-      span.className = "chip";
-      span.innerHTML = escapeHtml(t) + ` <span class="x" data-action="remTag" data-tag="${escapeHtml(t)}">×</span>`;
-      tagsInput.insertBefore(span, tagText);
-    });
-    tagText.value = "";
-    updateSuggestions();
-  }
-
-  function updateSuggestions(){
-    const known = getAllKnownSubjects().filter(k=>!localTags.includes(k));
-    const q = tagText.value.trim().toLowerCase();
-    const filtered = known.filter(k=>k.toLowerCase().includes(q)).slice(0,8);
-    if(filtered.length===0 || q==="") { suggestionsWrap.innerHTML = ""; return; }
-    suggestionsWrap.innerHTML = `<div class="suggest-box">${filtered.map(s => `<div class="suggest-item" data-val="${escapeHtml(s)}">${escapeHtml(s)}</div>`).join("")}</div>`;
-    Array.from(suggestionsWrap.querySelectorAll(".suggest-item")).forEach(it=>{
-      it.addEventListener("click", ()=>{ localTags.push(it.dataset.val); refreshTags(); });
-    });
-  }
-
-  // events for tag input
-  tagsInput.addEventListener("click", ()=> tagText.focus());
-  tagText.addEventListener("keydown", (ev)=>{
-    if(ev.key === "Enter"){ ev.preventDefault(); const v = tagText.value.trim(); if(v && !localTags.includes(v)){ localTags.push(v); refreshTags(); } }
-    if(ev.key === "Backspace" && tagText.value==="" && localTags.length){ localTags.pop(); refreshTags(); }
-  });
-  tagsInput.addEventListener("input", updateSuggestions);
-  document.addEventListener("click", function onDocClick(e){
-    if(!suggestionsWrap.contains(e.target) && e.target !== tagText) suggestionsWrap.innerHTML = "";
+  // Subir datos locales
+  const batch2 = db.batch();
+  
+  datos.forEach((al) => {
+    const ref = db.collection("Alumnos").doc();
+    batch2.set(ref, al);
   });
 
-  // click remove tag inside modal
-  tagsInput.addEventListener("click", (e)=>{
-    const rem = e.target.closest("[data-action='remTag']");
-    if(rem){
-      const t = rem.dataset.tag;
-      localTags = localTags.filter(x=>x!==t);
-      refreshTags();
-    }
-  });
+  await batch2.commit();
 
-  // fill values if editing
-  if(student){
-    document.getElementById("f_name").value = student.name;
-    document.getElementById("f_cel").value = student.celular;
-    document.getElementById("f_hor").value = student.horario;
-    // set localTags then render
-  } else {
-    document.getElementById("f_name").value = "";
-    document.getElementById("f_cel").value = "";
-    document.getElementById("f_hor").value = "";
-  }
-  refreshTags();
+  alert("Datos subidos a Firebase ✔");
+};
 
-  // open video reference (local path)
-  document.getElementById("openVideoBtn").addEventListener("click", ()=>{
-    window.open(REFERENCE_VIDEO, "_blank");
-  });
 
-  document.getElementById("closeModal").onclick = closeModal;
-  document.getElementById("cancelBtn").onclick = closeModal;
-  document.getElementById("backdrop").onclick = function(e){ if(e.target.id === 'backdrop') closeModal(); }
-
-  // handle submit
-  document.getElementById("modalForm").onsubmit = function(ev){
-    ev.preventDefault();
-    const name = document.getElementById("f_name").value.trim();
-    const cel  = document.getElementById("f_cel").value.trim();
-    const hor  = document.getElementById("f_hor").value.trim();
-    const mats = localTags.map(x=>x.trim()).filter(Boolean);
-
-    if(!name){ alert("El nombre es obligatorio"); return; }
-    if(cel && !phoneValid(cel)){ if(!confirm("El número de celular parece inválido. Deseas continuar?")) return; }
-
-    if(editingId){
-      students = students.map(s => s.id === editingId ? {...s, name, celular:cel, horario:hor, materias:mats} : s);
-    } else {
-      const newStudent = { id: uid(), name, celular:cel, horario:hor, materias:mats };
-      students.unshift(newStudent);
-    }
-    saveStudents(students);
-    render();
-    // auto-push to server if configured
-    if(firestore) pushAllToServer();
-    closeModal();
-  }
-}
-
-function closeModal(){ modalRoot.style.display = "none"; modalRoot.innerHTML = ""; editingId = null; }
-
-/* ---------- actions (edit/delete) ---------- */
-document.getElementById("openAddBtn").addEventListener("click", ()=> openModal());
-
-tbody.addEventListener("click", function(e){
-  const btn = e.target.closest("button");
-  if(!btn) return;
-  const action = btn.dataset.action;
-  const id = btn.dataset.id;
-  if(action === "edit"){
-    const st = students.find(s=>s.id===id); if(st) openModal(st);
-  } else if(action === "del"){
-    if(confirm("Eliminar alumno? Esta acción no se puede deshacer.")){
-      students = students.filter(s=>s.id!==id); saveStudents(students); render();
-      if(firestore) pushAllToServer();
-    }
-  }
-});
-
-/* deleting individual chip from table -> opens edit & removes chip there */
-tbody.addEventListener("click", function(e){
-  const chipX = e.target.closest(".x[data-action='delChip']");
-  if(!chipX) return;
-  const id = chipX.dataset.id;
-  const mat = chipX.dataset.m;
-  // open editor preloaded and remove that materia
-  const st = students.find(s=>s.id===id);
-  if(!st) return;
-  // remove materia and save
-  st.materias = st.materias.filter(m => m !== mat);
-  students = students.map(s => s.id === st.id ? st : s);
-  saveStudents(students);
-  render();
-  if(firestore) pushAllToServer();
-});
-
-/* ---------- search ---------- */
-document.getElementById("searchInput").addEventListener("input", ()=> render());
-
-/* ---------- export/import json ---------- */
-document.getElementById("exportBtn").addEventListener("click", ()=>{
-  const dataStr = JSON.stringify(students, null, 2);
-  const blob = new Blob([dataStr], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = "alumnos_export.json"; a.click(); URL.revokeObjectURL(url);
-});
-
-document.getElementById("importBtn").addEventListener("click", ()=>{
-  const inp = document.createElement("input"); inp.type="file"; inp.accept="application/json";
-  inp.onchange = e=>{
-    const file = e.target.files[0]; if(!file) return;
-    const rdr = new FileReader();
-    rdr.onload = ev=>{
-      try{
-        const data = JSON.parse(ev.target.result);
-        if(!Array.isArray(data)) throw new Error("Formato inválido");
-        const transformed = data.map(it=>({ id: it.id || uid(), name: it.name || "", celular: it.celular || "", horario: it.horario || "", materias: Array.isArray(it.materias) ? it.materias : String(it.materias||"").split(",").map(x=>x.trim()).filter(Boolean) }));
-        students = [...transformed, ...students];
-        saveStudents(students); render();
-        alert("Importación completada.");
-        if(firestore) pushAllToServer();
-      }catch(err){ alert("Error al importar: " + err.message); }
-    }
-    rdr.readAsText(file);
-  };
-  inp.click();
-});
-
-/* ---------- server sync (Firebase) ---------- */
-async function initFirebaseIfConfigured(){
-  if(!firebaseConfig) return;
-  try{
-    // dynamically load firebase scripts
-    await loadScript("https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js");
-    await loadScript("https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js");
-    firebaseApp = firebase.initializeApp(firebaseConfig);
-    firestore = firebase.firestore();
-    console.log("Firebase iniciado");
-  }catch(err){ console.error("Error iniciando firebase:", err); alert("No se pudo inicializar Firebase. Revisá la configuración."); }
-}
-
-function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }) }
-
-async function pushAllToServer(){
-  if(!firestore){ alert("No hay servidor configurado."); return; }
-  // simplificado: guardamos cada alumno en colección 'alumnos' con id local (para sincronizar)
-  const batch = firestore.batch ? firestore.batch() : null;
-  const colRef = firestore.collection("alumnos");
-  try{
-    for(const s of students){
-      const docRef = colRef.doc(s.id);
-      await docRef.set(s); // set sobrescribe o crea
-    }
-    alert("Sincronización subida completada.");
-  }catch(err){ console.error(err); alert("Error subiendo al servidor: "+err.message); }
-}
-
-async function pullFromServer(){
-  if(!firestore){ alert("No hay servidor configurado."); return; }
-  try{
-    const snapshot = await firestore.collection("alumnos").get();
-    const arr = [];
-    snapshot.forEach(doc => arr.push(doc.data()));
-    // simple merge: remote first
-    students = [...arr, ...students.filter(local => !arr.some(r => r.id === local.id))];
-    saveStudents(students); render();
-    alert("Sincronización descargada completada.");
-  }catch(err){ console.error(err); alert("Error bajando del servidor: "+err.message); }
-}
-
-/* ---------- UI: botones push/pull ---------- */
-document.getElementById("pushBtn").addEventListener("click", ()=> {
-  if(!confirm("Subir todos los alumnos al servidor (requiere configuración de Firebase)?")) return;
-  pushAllToServer();
-});
-document.getElementById("pullBtn").addEventListener("click", ()=> {
-  if(!confirm("Descargar alumnos desde el servidor (fusionará con los locales)?")) return;
-  pullFromServer();
-});
-
-/* ---------- init sample data & shortcuts ---------- */
-if(students.length === 0){
-  students = [
-    {id:uid(), name:"María García", materias:["Matemáticas","Física"], celular:"123-456-7890", horario:"Lunes, 10:00 AM"},
-    {id:uid(), name:"Juan Pérez", materias:["Historia","Literatura"], celular:"098-765-4321", horario:"Martes, 2:00 PM"}
-  ];
-  saveStudents(students);
-}
-
-document.addEventListener("keydown", (e)=>{ if(e.key === "n" && (e.ctrlKey || e.metaKey)){ e.preventDefault(); openModal(); } });
-
-/* ---------- init: optionally init firebase, then render ---------- */
-(async function init(){
-  await initFirebaseIfConfigured(); // if firebaseConfig == null this returns quickly
-  render();
-})();
+/* ---------------------------------------------------------
+   CARGAR INICIAL
+--------------------------------------------------------- */
+dibujar();
 </script>
 
 </body>
