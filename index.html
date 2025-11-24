@@ -1,9 +1,504 @@
-<main class="content">
-    <!-- lo que ya tenés -->
-    
-    <!-- AGREGAS ESTO -->
-    <div class="card">
-      <h2>Nueva sección</h2>
-      <p>Este es un contenido extra dentro de la misma página.</p>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>EduManager — Gestión de Alumnos</title>
+<style>
+  :root{
+    --bg:#fff0f6;
+    --accent:#d96b8a;
+    --accent-dark:#c45878;
+    --muted:#ffdce6;
+    --card:#ffffff;
+    --chip:#ffb6d9;
+    --text:#5a2b39;
+    --soft:#fff7fb;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: linear-gradient(180deg,var(--bg), #fff6f9 60%);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+  }
+
+  /* SIDEBAR */
+  .sidebar{
+    width:240px;
+    background:var(--accent);
+    color:white;
+    padding:28px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    min-height:100vh;
+  }
+  .brand{font-weight:700; font-size:20px; text-align:center; margin-bottom:6px}
+  .nav a{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    padding:10px 12px;
+    border-radius:10px;
+    text-decoration:none;
+    color:inherit;
+    transition:all .15s;
+  }
+  .nav a:hover{background:rgba(255,255,255,0.08)}
+  .nav .active{background:rgba(255,255,255,0.12)}
+  .nav .ico{width:26px; text-align:center}
+
+  /* MAIN */
+  .main{
+    flex:1;
+    padding:28px;
+    min-height:100vh;
+  }
+  h1{margin:0 0 18px 0; font-size:28px; color:var(--accent-dark)}
+  .toolbar{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-bottom:18px;
+  }
+  .search{
+    flex:1;
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .search input{
+    width:100%;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid #ffd1e6;
+    background:var(--soft);
+  }
+
+  .btn{
+    background:var(--accent);
+    color:white;
+    padding:10px 14px;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .btn.ghost{
+    background:transparent;color:var(--accent-dark);border:1px solid #ffd1e6;
+  }
+
+  .card{
+    background:var(--card);
+    padding:18px;
+    border-radius:14px;
+    box-shadow:0 6px 18px rgba(90,43,57,0.06);
+  }
+
+  form.row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  form.row input, form.row textarea{
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid #ffd1e6;
+    background:var(--soft);
+    min-width:180px;
+    flex:1;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:14px;
+    border-radius:10px;
+    overflow:hidden;
+  }
+  thead th{
+    background:var(--muted);
+    text-align:left;
+    padding:12px;
+    font-weight:700;
+  }
+  tbody td{
+    background:var(--soft);
+    padding:12px;
+    border-bottom:1px solid #ffd3e0;
+    vertical-align:middle;
+  }
+  .actions button{margin-right:8px}
+
+  /* chips */
+  .chip{
+    display:inline-block;
+    background:var(--chip);
+    color:var(--text);
+    padding:6px 10px;
+    border-radius:999px;
+    margin:4px 6px 4px 0;
+    font-size:13px;
+  }
+  .chip .x{
+    margin-left:8px;
+    opacity:0.6;
+    cursor:pointer;
+    font-weight:700;
+  }
+
+  /* modal */
+  .modal-backdrop{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.35);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:1000;
+  }
+  .modal{
+    width:980px;
+    max-width:96%;
+    background:white;
+    border-radius:12px;
+    padding:18px;
+  }
+  .modal h3{margin-top:0}
+  .field{display:flex;flex-direction:column;margin-bottom:10px}
+  .field label{font-size:13px;margin-bottom:6px;color:#7e4a5a}
+
+  /* responsive */
+  @media (max-width:880px){
+    .sidebar{display:none}
+    .toolbar{flex-direction:column; align-items:stretch}
+    form.row input{min-width:unset; width:100%}
+    .modal{width:95%}
+  }
+
+  /* small helpers */
+  .muted{color:#9b6a77;font-size:13px}
+  .right{margin-left:auto}
+  .table-sm td, .table-sm th{padding:8px}
+</style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <div class="brand">EduManager</div>
+    <nav class="nav">
+      <a class="active" href="#"><span class="ico">🏠</span> Dashboard</a>
+      <a href="#"><span class="ico">👥</span> Alumnos</a>
+      <a href="#"><span class="ico">📘</span> Materias</a>
+      <a href="#"><span class="ico">⚙️</span> Ajustes</a>
+    </nav>
+
+    <div style="margin-top:auto;font-size:13px;opacity:.9">
+      <div class="muted">Usuario</div>
+      <div style="font-weight:600">Tu cuenta</div>
     </div>
-</main>
+  </div>
+
+  <main class="main">
+    <h1>Gestión de Alumnos</h1>
+
+    <div class="toolbar">
+      <div class="search">
+        <input id="searchInput" placeholder="Buscar por nombre, materia o celular..." />
+      </div>
+      <button class="btn ghost" id="importBtn">Importar JSON</button>
+      <button class="btn ghost" id="exportBtn">Exportar JSON</button>
+      <button class="btn" id="openAddBtn">Agregar Alumno</button>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;gap:16px;align-items:center;margin-bottom:12px">
+        <div style="font-weight:700">Lista de alumnos</div>
+        <div class="muted">Cantidad: <span id="count">0</span></div>
+      </div>
+
+      <table id="studentsTable" class="table-sm" aria-label="Lista de alumnos">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Materias</th>
+            <th>Número</th>
+            <th>Horario</th>
+            <th style="width:130px">Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+    </div>
+  </main>
+
+  <!-- Modal (hidden by default) -->
+  <div id="modalRoot" style="display:none"></div>
+
+<script>
+/* ---------- Storage & helpers ---------- */
+const LS_KEY = "edu_alumnos_v1";
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8) }
+
+function loadStudents(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return [];
+    return JSON.parse(raw);
+  }catch(e){ console.error(e); return [];}
+}
+function saveStudents(arr){
+  localStorage.setItem(LS_KEY, JSON.stringify(arr));
+}
+
+function phoneValid(v){
+  if(!v) return false;
+  // simple validation: contains 7-15 digits
+  const digits = v.replace(/\D/g,"");
+  return digits.length>=7 && digits.length<=15;
+}
+
+/* ---------- State ---------- */
+let students = loadStudents();
+let editingId = null;
+
+/* ---------- Rendering ---------- */
+const tbody = document.querySelector("#studentsTable tbody");
+const countSpan = document.getElementById("count");
+
+function render(){
+  tbody.innerHTML = "";
+  const q = document.getElementById("searchInput").value.trim().toLowerCase();
+  const list = students.filter(s=>{
+    if(!q) return true;
+    const text = (s.name + " " + s.materias.join(" ") + " " + s.celular).toLowerCase();
+    return text.includes(q);
+  });
+
+  countSpan.textContent = list.length;
+
+  if(list.length===0){
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td colspan='5' style='text-align:center;padding:20px;color:#b07fa0'>No hay alumnos</td>";
+    tbody.appendChild(tr);
+    return;
+  }
+
+  list.forEach(s=>{
+    const tr = document.createElement("tr");
+    const materiasHTML = s.materias.map(m=>`<span class="chip">${escapeHtml(m)}</span>`).join("");
+    tr.innerHTML = `
+      <td>${escapeHtml(s.name)}</td>
+      <td>${materiasHTML}</td>
+      <td>${escapeHtml(s.celular)}</td>
+      <td>${escapeHtml(s.horario)}</td>
+      <td class="actions">
+        <button class="btn ghost" data-action="edit" data-id="${s.id}">Editar</button>
+        <button class="btn" data-action="del" data-id="${s.id}">Eliminar</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* small escape to avoid accidental html injection */
+function escapeHtml(text){
+  if(text==null) return "";
+  return String(text).replace(/[&<>"]/g, function(ch){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]);
+  });
+}
+
+/* ---------- Modal / Form ---------- */
+const modalRoot = document.getElementById("modalRoot");
+
+function openModal(student=null){
+  editingId = student ? student.id : null;
+  modalRoot.style.display = "block";
+  modalRoot.innerHTML = `
+    <div class="modal-backdrop" id="backdrop">
+      <div class="modal card" role="dialog" aria-modal="true">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h3>${student? "Editar alumno":"Agregar alumno"}</h3>
+          <button id="closeModal" class="btn ghost">Cerrar</button>
+        </div>
+        <form id="modalForm" style="margin-top:8px">
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div style="flex:1;min-width:220px" class="field">
+              <label>Nombre</label>
+              <input id="f_name" required placeholder="Nombre del alumno" />
+            </div>
+            <div style="flex:1;min-width:220px" class="field">
+              <label>Número de celular</label>
+              <input id="f_cel" placeholder="+54 9 11 1234 5678" />
+            </div>
+            <div style="flex:1;min-width:220px" class="field">
+              <label>Horario de clases</label>
+              <input id="f_hor" placeholder="Ej: Lunes 10:00 AM" />
+            </div>
+            <div style="flex:1;min-width:220px" class="field">
+              <label>Materias (separadas por coma)</label>
+              <input id="f_mat" placeholder=\"Matemáticas, Inglés\" />
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+            <button class="btn" type="submit">${student?"Guardar":"Agregar"}</button>
+            <button id="cancelBtn" class="btn ghost" type="button">Cancelar</button>
+            <div class="muted right">Los datos se guardan localmente en tu navegador</div>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  // fill values if editing
+  if(student){
+    document.getElementById("f_name").value = student.name;
+    document.getElementById("f_cel").value = student.celular;
+    document.getElementById("f_hor").value = student.horario;
+    document.getElementById("f_mat").value = student.materias.join(", ");
+  } else {
+    document.getElementById("f_name").value = "";
+    document.getElementById("f_cel").value = "";
+    document.getElementById("f_hor").value = "";
+    document.getElementById("f_mat").value = "";
+  }
+
+  // events
+  document.getElementById("closeModal").onclick = closeModal;
+  document.getElementById("cancelBtn").onclick = closeModal;
+  document.getElementById("backdrop").onclick = function(e){
+    if(e.target.id === 'backdrop') closeModal();
+  }
+
+  document.getElementById("modalForm").onsubmit = function(ev){
+    ev.preventDefault();
+    const name = document.getElementById("f_name").value.trim();
+    const cel  = document.getElementById("f_cel").value.trim();
+    const hor  = document.getElementById("f_hor").value.trim();
+    const mats = document.getElementById("f_mat").value.split(",").map(x=>x.trim()).filter(Boolean);
+
+    if(!name){ alert("El nombre es obligatorio"); return; }
+    if(!phoneValid(cel)){ if(!confirm("El número de celular parece inválido. Deseas continuar?")) return; }
+
+    if(editingId){
+      // update
+      students = students.map(s=>{
+        if(s.id === editingId){
+          return {...s, name, celular:cel, horario:hor, materias:mats};
+        }
+        return s;
+      });
+    } else {
+      const newStudent = { id: uid(), name, celular:cel, horario:hor, materias:mats };
+      students.unshift(newStudent); // add top
+    }
+    saveStudents(students);
+    render();
+    closeModal();
+  }
+}
+
+function closeModal(){
+  modalRoot.style.display = "none";
+  modalRoot.innerHTML = "";
+  editingId = null;
+}
+
+/* ---------- Actions: add / edit / delete ---------- */
+document.getElementById("openAddBtn").addEventListener("click", ()=> openModal());
+
+tbody.addEventListener("click", function(e){
+  const btn = e.target.closest("button");
+  if(!btn) return;
+  const action = btn.dataset.action;
+  const id = btn.dataset.id;
+  if(action === "edit"){
+    const st = students.find(s=>s.id===id);
+    if(st) openModal(st);
+  } else if(action === "del"){
+    if(confirm("Eliminar alumno? Esta acción no se puede deshacer.")){
+      students = students.filter(s=>s.id!==id);
+      saveStudents(students);
+      render();
+    }
+  }
+});
+
+/* ---------- Search ---------- */
+document.getElementById("searchInput").addEventListener("input", ()=> render());
+
+/* ---------- Export / Import ---------- */
+document.getElementById("exportBtn").addEventListener("click", ()=>{
+  const dataStr = JSON.stringify(students, null, 2);
+  const blob = new Blob([dataStr], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "alumnos_export.json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("importBtn").addEventListener("click", ()=>{
+  const inp = document.createElement("input");
+  inp.type="file";
+  inp.accept="application/json";
+  inp.onchange = e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const rdr = new FileReader();
+    rdr.onload = ev=>{
+      try{
+        const data = JSON.parse(ev.target.result);
+        if(!Array.isArray(data)) throw new Error("Formato inválido");
+        // quick transform/validation: keep id if present else create
+        const transformed = data.map(it=>({
+          id: it.id || uid(),
+          name: it.name || "",
+          celular: it.celular || "",
+          horario: it.horario || "",
+          materias: Array.isArray(it.materias) ? it.materias : (String(it.materias||"").split(",").map(x=>x.trim()).filter(Boolean))
+        }));
+        // merge (append)
+        students = [...transformed, ...students];
+        saveStudents(students);
+        render();
+        alert("Importación completada.");
+      }catch(err){
+        alert("Error al importar: " + err.message);
+      }
+    }
+    rdr.readAsText(file);
+  };
+  inp.click();
+});
+
+/* ---------- Init: sample data if empty ---------- */
+if(students.length === 0){
+  students = [
+    {id:uid(), name:"María García", materias:["Matemáticas","Física"], celular:"123-456-7890", horario:"Lunes, 10:00 AM"},
+    {id:uid(), name:"Juan Pérez",   materias:["Historia","Literatura"], celular:"098-765-4321", horario:"Martes, 2:00 PM"},
+    {id:uid(), name:"Ana López",    materias:["Biología","Química"], celular:"567-890-1234", horario:"Miércoles, 9:00 AM"}
+  ];
+  saveStudents(students);
+}
+
+/* ---------- Keyboard shortcuts ---------- */
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "n" && (e.ctrlKey || e.metaKey)){
+    e.preventDefault();
+    openModal();
+  }
+});
+
+render();
+</script>
+
+</body>
+</html>
